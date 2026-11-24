@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crash-4 Offense Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* VOICE work tool for a coach: clear, dense, honest about assumptions
+   IDEA the gym scoreboard: big lit numerals, home vs last year
+   PICTURE the live scoreboard with points-by-source bar, beside the sliders
+   COLOUR white floor / deep ink, ball orange accent, maple support field, dark board
+   TYPE Barlow Condensed for numerals and titles + Barlow text
+   LAYOUT laptop: sliders left, sticky scoreboard right; phone: title, board, sliders */
+:root{color-scheme:light dark;--bg:light-dark(#ffffff,#121110);--ink:light-dark(#16130f,#f1ece4);--mute:light-dark(#5f574d,#b3aa9d);--line:light-dark(#e3ddd3,#2e2a25);--maple:light-dark(#f6ead6,#1f1b16);--org:#e4572e;--board:#14120f;--lit:#ffd9b8;--good:light-dark(#1f7a4a,#5fd08f);--bad:light-dark(#b3261e,#ff8a80)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.55 Barlow,system-ui,sans-serif;overflow-x:clip}
+.band{padding:clamp(24px,4vw,48px) max(5vw,16px)}
+.wrap{max-width:1240px;margin:0 auto}
+h1{font:700 clamp(32px,5vw,48px)/1.05 "Barlow Condensed",sans-serif;letter-spacing:-.01em;margin:0 0 6px;text-wrap:balance}
+h2{font:700 26px/1.1 "Barlow Condensed",sans-serif;margin:0 0 10px}
+.sub{color:var(--mute);margin:0 0 22px;max-width:68ch}
+.top{background:var(--maple);border-bottom:6px solid var(--org)}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:28px;align-items:start}
+.ctrl{display:grid;gap:14px}
+.row{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.row label{display:flex;justify-content:space-between;gap:10px;font-weight:600}
+.row output{font:700 22px/1 "Barlow Condensed",sans-serif;color:var(--org);white-space:nowrap}
+.row small{display:block;color:var(--mute);font-size:13px;margin-top:2px}
+input[type=range]{width:100%;height:44px;accent-color:var(--org);margin:0;cursor:pointer}
+input[type=range]:focus-visible{outline:2px solid var(--org);outline-offset:2px;border-radius:6px}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+button{font:600 15px Barlow,sans-serif;min-height:44px;padding:0 14px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+button:hover{border-color:var(--org)}
+button:focus-visible{outline:2px solid var(--org);outline-offset:2px}
+.fixed{font-size:14px;color:var(--mute)}
+.fixed b{color:var(--ink)}
+.board{position:sticky;top:12px;background:var(--board);color:#f4efe8;border-radius:14px;padding:20px;box-shadow:inset 0 0 0 3px #2a2520}
+.sb{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.cell{background:#000;border-radius:10px;padding:12px 14px;box-shadow:inset 0 0 0 1px #2c2722}
+.cell .k{font-size:14px;color:#b8ada0}
+.big{font:700 clamp(56px,9vw,92px)/.95 "Barlow Condensed",sans-serif;color:var(--lit);text-shadow:0 0 18px rgba(255,140,60,.35);font-variant-numeric:tabular-nums}
+.mid{font:700 clamp(34px,5vw,48px)/1 "Barlow Condensed",sans-serif;color:var(--lit);font-variant-numeric:tabular-nums}
+.d{font:600 15px Barlow,sans-serif;margin-top:4px}
+.up{color:#6fe0a0}.dn{color:#ff8a80}
+.vs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px;font-size:14px}
+.vs div{background:#1d1a16;border-radius:8px;padding:8px 10px}
+.vs b{display:block;font:700 24px/1.1 "Barlow Condensed",sans-serif;color:#fff}
+.stackbar{display:flex;height:34px;border-radius:7px;overflow:hidden;margin:16px 0 6px;background:#000}
+.stackbar span{display:flex;align-items:center;justify-content:center;font:700 15px Barlow,sans-serif;color:#14120f;white-space:nowrap;overflow:hidden;transition:width .35s}
+.leg{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:14px;color:#cfc5b8}
+.leg i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.box{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:14px;font-size:13px;color:#b8ada0}
+.box b{display:block;font:700 22px/1.1 "Barlow Condensed",sans-serif;color:#fff;font-variant-numeric:tabular-nums}
+.mini{display:none}
+.split{display:flex;height:10px;border-radius:5px;overflow:hidden;margin-top:8px;background:var(--line)}
+.splitTxt{font-size:14px;font-weight:600;margin-top:4px;white-space:normal}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+thead th{font-size:14px;color:var(--mute);font-weight:600}
+td.win{background:color-mix(in srgb,var(--good) 16%,transparent);font-weight:600}
+td.cur{outline:2px solid var(--org);outline-offset:-2px}
+.note{font-size:14px;color:var(--mute)}
+.cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px}
+ul{padding-left:20px;margin:0}
+li{margin-bottom:6px}
+@media(max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}.board{position:static}.cols{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:860px){.mini{display:flex;position:sticky;top:0;z-index:5;justify-content:space-between;gap:10px;background:var(--board);color:var(--lit);padding:10px max(5vw,16px);font:700 20px "Barlow Condensed",sans-serif}}
+@media(max-width:520px){.box{grid-template-columns:repeat(2,minmax(0,1fr))}.vs{grid-template-columns:minmax(0,1fr)}table{font-size:13px}th,td{padding:6px 5px}}
+@media(prefers-reduced-motion:reduce){.stackbar span{transition:none}}
+</style>
+</head>
+<body>
+<div class="mini" aria-hidden="true"><span id="mPPG">–</span><span id="mPPP">–</span><span id="mD">–</span></div>
+<section class="band top">
+ <div class="wrap">
+  <h1>Crash-4 offense calculator</h1>
+  <p class="sub">Move the sliders to see what this shot mix and crash rate would score per game and per possession, compared with last season's patient offense (38.0 PPG, 0.61 PPP).</p>
+  <div class="grid">
+   <div class="ctrl">
+    <div class="row"><label for="p3">3-point % <output id="o_p3"></output></label><input type="range" id="p3" min="10" max="35" step="0.5"><small>Last year 25.6%. 2017 RCHS 21%.</small></div>
+    <div class="row"><label for="p2">2-point % (layups, close shots) <output id="o_p2"></output></label><input type="range" id="p2" min="20" max="50" step="0.5"><small>Last year 28.5% with mid-range. 2017 RCHS 31%.</small></div>
+    <div class="row"><label for="ft">Free throw % <output id="o_ft"></output></label><input type="range" id="ft" min="35" max="80" step="1"><small>Last year 53.5%.</small></div>
+    <div class="row"><label for="c4">Misses where we crash 4 <output id="o_c4"></output></label><input type="range" id="c4" min="0" max="100" step="5"><small>2016 WHS crashed 4 on 45% of misses.</small><div class="split" id="split" aria-hidden="true"></div><div class="splitTxt" id="splitTxt"></div></div>
+    <div class="row"><label for="pos">Possessions per game <output id="o_pos"></output></label><input type="range" id="pos" min="55" max="80" step="1"><small>Last year about 62. A faster style likely runs 64 to 70.</small></div>
+    <div class="btns">
+     <button type="button" data-p="tmpl">2017 RCHS shooting</button>
+     <button type="button" data-p="last">Last year's shooting</button>
+     <button type="button" data-p="low">Cold shooting</button>
+     <button type="button" data-p="reset">Reset</button>
+    </div>
+    <p class="fixed">Locked: <b>15 turnovers per game</b>, shot mix <b>43% threes / 57% twos</b>, <b>0.24 free throw attempts per shot</b>, rebound rates <b>56% crash 4</b>, <b>41% crash 3</b>, <b>17% crash 2 or fewer</b>. The crash 3 and crash 2 or fewer split moves with the crash 4 rate.</p>
+   </div>
+   <div class="board" aria-live="polite">
+    <div class="sb">
+     <div class="cell"><div class="k">Points per game</div><div class="big" id="ppg">–</div><div class="d" id="dppg"></div></div>
+     <div class="cell"><div class="k">Points per possession</div><div class="big" id="ppp">–</div><div class="d" id="dppp"></div></div>
+    </div>
+    <div class="vs">
+     <div>Last year's offense<b>38.0 · 0.61</b></div>
+     <div>Last year's opponents<b>35.4 · 0.57</b></div>
+     <div>2017 RCHS<b>51.9 PPG</b></div>
+    </div>
+    <div class="stackbar" id="bar"></div>
+    <div class="leg"><span><i style="background:#e4572e"></i>From threes</span><span><i style="background:#ffd9b8"></i>From twos</span><span><i style="background:#8fc7a6"></i>Free throws</span></div>
+    <div class="box">
+     <div>Shots<b id="bFGA">–</b></div>
+     <div>Threes made<b id="b3">–</b></div>
+     <div>Off. rebounds<b id="bOR">–</b></div>
+     <div>OREB rate<b id="bORp">–</b></div>
+    </div>
+   </div>
+  </div>
+ </div>
+</section>
+<script>
+{
+const TO=15,MIX=607/1403,FTR=339/1403,R4=.56,R3=.41,R2=.17,LY_PPG=38.0,LY_PPP=0.61;
+const D={p3:21,p2:31,ft:54,c4:75,pos:65};
+const P={tmpl:{p3:21,p2:31,ft:61},last:{p3:25.6,p2:28.5,ft:53.5},low:{p3:17,p2:27,ft:50}};
+const ids=Object.keys(D);
+const $=id=>document.getElementById(id);
+function split(c4){const q=Math.pow(c4,0.25);const c3=4*q**3*(1-q);return{c3,c2:Math.max(1-c4-c3,0)}}
+function model(v,mix=MIX,to=TO,rOverride){
+ const p3=v.p3/100,p2=v.p2/100,ft=v.ft/100,c4=v.c4/100;
+ const sp=split(c4);const r=rOverride??(c4*R4+sp.c3*R3+sp.c2*R2);
+ const fg=mix*p3+(1-mix)*p2,m=1-fg;
+ const S=Math.max(v.pos-to,0);
+ const fga=S/(1-m*r+0.44*FTR);
+ const a3=fga*mix,a2=fga-a3,fta=fga*FTR;
+ const pt3=a3*p3*3,pt2=a2*p2*2,ptf=fta*ft;
+ const pts=pt3+pt2+ptf;
+ return{r,fga,m3:a3*p3,oreb:fga*m*r,pt3,pt2,ptf,pts,ppp:pts/v.pos};
+}
+function read(){const v={};ids.forEach(k=>v[k]=+$(k).value);return v}
+function sign(x,d){return(x>=0?'+':'−')+Math.abs(x).toFixed(d)}
+function render(){
+ const v=read();
+ $('o_p3').textContent=v.p3.toFixed(1)+'%';$('o_p2').textContent=v.p2.toFixed(1)+'%';
+ $('o_ft').textContent=v.ft+'%';$('o_c4').textContent=v.c4+'%';const sp=split(v.c4/100),a3=sp.c3*100,a2=sp.c2*100;$('split').innerHTML=[['Crash 4',v.c4,'#e4572e'],['Crash 3',a3,'#f2a27f'],['Crash 2 or fewer',a2,'#cfc5b8']].map(([n,x,c])=>`<span style="flex:${x} 0 0;background:${c}"></span>`).join('')+'';$('splitTxt').textContent=`Crash 4: ${v.c4}% · Crash 3: ${Math.round(a3)}% · Crash 2 or fewer: ${Math.round(a2)}%`;$('o_pos').textContent=v.pos;
+ const o=model(v);
+ $('ppg').textContent=o.pts.toFixed(1);$('ppp').textContent=o.ppp.toFixed(2);
+ const dg=o.pts-LY_PPG,dp=o.ppp-LY_PPP;
+ $('dppg').textContent=sign(dg,1)+' vs last year';$('dppg').className='d '+(dg>=0?'up':'dn');
+ $('dppp').textContent=sign(dp,2)+' vs last year';$('dppp').className='d '+(dp>=0?'up':'dn');
+ $('mPPG').textContent=o.pts.toFixed(1)+' PPG';$('mPPP').textContent=o.ppp.toFixed(2)+' PPP';$('mD').textContent=sign(dg,1);
+ const parts=[[o.pt3,'#e4572e'],[o.pt2,'#ffd9b8'],[o.ptf,'#8fc7a6']];
+ $('bar').innerHTML=parts.map(([p,c])=>`<span style="width:${(p/o.pts*100).toFixed(1)}%;background:${c}">${p.toFixed(1)}</span>`).join('');
+ $('bFGA').textContent=o.fga.toFixed(1);$('b3').textContent=o.m3.toFixed(1);$('bOR').textContent=o.oreb.toFixed(1);$('bORp').textContent=(o.r*100).toFixed(0)+'%';
+ try{localStorage.setItem('crash4',JSON.stringify(v))}catch(e){}
+}
+function set(v){ids.forEach(k=>{if(v[k]!=null)$(k).value=v[k]});render()}
+let saved=null;try{saved=JSON.parse(localStorage.getItem('crash4'))}catch(e){}
+set({...D,...(saved||{})});
+ids.forEach(k=>$(k).addEventListener('input',render));
+document.querySelectorAll('[data-p]').forEach(b=>b.addEventListener('click',()=>{const k=b.dataset.p;set(k==='reset'?D:{...read(),...P[k]})}));
+}
+</script>
+</body>
+</html>
